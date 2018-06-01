@@ -14,8 +14,8 @@ import (
 
 	"runtime/debug"
 
-	"github.com/mdempsky/gocode/gbimporter"
-	"github.com/mdempsky/gocode/suggest"
+	"github.com/localvar/gocode/gbimporter"
+	"github.com/localvar/gocode/suggest"
 )
 
 func doClient() {
@@ -127,7 +127,6 @@ func cmdAutoComplete(c *rpc.Client) {
 	var req AutoCompleteRequest
 	req.Filename, req.Data, req.Cursor = prepareFilenameDataCursor()
 	req.Context = gbimporter.PackContext(&build.Default)
-	req.Source = *g_source
 
 	var res AutoCompleteReply
 	var err error

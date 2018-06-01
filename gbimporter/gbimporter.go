@@ -3,10 +3,12 @@ package gbimporter
 import (
 	"fmt"
 	"go/build"
+	stdimporter "go/importer"
 	"go/types"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 // We need to mangle go/build.Default to make gcimporter work as
@@ -22,11 +24,8 @@ type importer struct {
 	gbpaths    []string
 }
 
-func New(ctx *PackedContext, filename string, underlying types.ImporterFrom) types.ImporterFrom {
-	imp := &importer{
-		ctx:        ctx,
-		underlying: underlying,
-	}
+func New(ctx *PackedContext, filename string) types.ImporterFrom {
+	imp := &importer{ctx: ctx}
 
 	slashed := filepath.ToSlash(filename)
 	i := strings.LastIndex(slashed, "/vendor/src/")
@@ -34,6 +33,7 @@ func New(ctx *PackedContext, filename string, underlying types.ImporterFrom) typ
 		i = strings.LastIndex(slashed, "/src/")
 	}
 	if i > 0 {
+		cachedPkgs.setCurrentPackage(slashed[i+5:])
 		paths := filepath.SplitList(imp.ctx.GOPATH)
 
 		gbroot := filepath.FromSlash(slashed[:i])
@@ -52,6 +52,7 @@ func New(ctx *PackedContext, filename string, underlying types.ImporterFrom) typ
 	Found:
 	}
 
+	imp.underlying = stdimporter.For("source", nil).(types.ImporterFrom)
 	return imp
 }
 
@@ -59,9 +60,78 @@ func (i *importer) Import(path string) (*types.Package, error) {
 	return i.ImportFrom(path, "", 0)
 }
 
+type dirCache struct {
+	lastAccess time.Time
+	pkgs       map[string]*types.Package
+}
+
+type pkgCache struct {
+	curPkg string
+	dirs   map[string]*dirCache
+}
+
+func (pc *pkgCache) setCurrentPackage(file string) {
+	if i := strings.LastIndexByte(file, '/'); i <= 0 {
+		return
+	} else if pc.curPkg == file[:i] {
+		return
+	} else {
+		pc.curPkg = file[:i]
+	}
+
+	for _, d := range pc.dirs {
+		for n := range d.pkgs {
+			if n == pc.curPkg {
+				delete(d.pkgs, n)
+				break
+			}
+		}
+	}
+}
+
+func (pc *pkgCache) search(srcDir, path string) *types.Package {
+	if d, ok := pc.dirs[srcDir]; ok {
+		if p, ok := d.pkgs[path]; ok {
+			d.lastAccess = time.Now()
+			return p
+		}
+	}
+	return nil
+}
+
+func (pc *pkgCache) add(srcDir, path string, pkg *types.Package) {
+	if d, ok := pc.dirs[srcDir]; ok {
+		d.pkgs[path] = pkg
+		d.lastAccess = time.Now()
+		return
+	}
+
+	if len(pc.dirs) >= 10 {
+		oldest, t := "", time.Now().Add(10000*time.Hour)
+		for k, v := range pc.dirs {
+			if v.lastAccess.Before(t) {
+				t = v.lastAccess
+				oldest = k
+			}
+		}
+		delete(pc.dirs, oldest)
+	}
+
+	pc.dirs[srcDir] = &dirCache{
+		lastAccess: time.Now(),
+		pkgs:       map[string]*types.Package{path: pkg},
+	}
+}
+
+var cachedPkgs = pkgCache{dirs: map[string]*dirCache{}}
+
 func (i *importer) ImportFrom(path, srcDir string, mode types.ImportMode) (*types.Package, error) {
 	buildDefaultLock.Lock()
 	defer buildDefaultLock.Unlock()
+
+	if p := cachedPkgs.search(srcDir, path); p != nil {
+		return p, nil
+	}
 
 	origDef := build.Default
 	defer func() { build.Default = origDef }()
@@ -81,7 +151,13 @@ func (i *importer) ImportFrom(path, srcDir string, mode types.ImportMode) (*type
 	def.SplitPathList = i.splitPathList
 	def.JoinPath = i.joinPath
 
-	return i.underlying.ImportFrom(path, srcDir, mode)
+	p, e := i.underlying.ImportFrom(path, srcDir, mode)
+	if e != nil {
+		return p, e
+	}
+
+	cachedPkgs.add(srcDir, path, p)
+	return p, nil
 }
 
 func (i *importer) splitPathList(list string) []string {

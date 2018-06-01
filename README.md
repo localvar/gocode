@@ -1,4 +1,16 @@
-[![Build Status](https://travis-ci.org/mdempsky/gocode.svg?branch=master)](https://travis-ci.org/mdempsky/gocode)
+[![Build Status](https://travis-ci.org/localvar/gocode.svg?branch=master)](https://travis-ci.org/localvar/gocode)
+
+**NOTE:** This project is based on the work of [mdempsky/gocode](https://github.com/mdempsky/gocode),
+which is a folk of the original project [nsf/gocode](https://github.com/nsf/gocode).
+After Go1.10, the original `gocode` stopped working because of the changes to `go build` (see
+[gocode#500](https://github.com/nsf/gocode/issues/500) for details). mdempsky's folk tries to fix
+the issue by generating suggestions from source but takes seconds to complete even in small packages.
+To improve performance, mdempsky also prototyped caching but only for compiled packages currently,
+which is not working well in my side. So I made this folk to implement caching for source, At first,
+I hope to close the folk after submit a PR to [mdempsky/gocode](https://github.com/mdempsky/gocode),
+but it seems not so easy to do everything right, so I will keep this folk at present. The good news
+is it should be working in most cases (`Cgo` is a known exception) with an acceptable performance:
+the first completion still takes seconds, but less than 50ms after that, in my test.
 
 ## An autocompletion daemon for the Go programming language
 
@@ -26,11 +38,11 @@ Also watch the [demo screencast](http://nosmileface.ru/images/gocode-demo.swf).
 
  2. Then you need to install gocode:
 
-    `go get -u github.com/mdempsky/gocode` (-u flag for "update")
+    `go get -u github.com/localvar/gocode` (-u flag for "update")
 
     Windows users should consider doing this instead:
 
-    `go get -u -ldflags -H=windowsgui github.com/mdempsky/gocode`
+    `go get -u -ldflags -H=windowsgui github.com/localvar/gocode`
 
     That way on the Windows OS gocode will be built as a GUI application and doing so solves hanging window issues with some of the editors.
 
@@ -80,7 +92,7 @@ In order to install vim scripts, you need to fulfill the following steps:
 
 Add the following line to your **.vimrc**:
 
-`Plugin 'mdempsky/gocode', {'rtp': 'vim/'}`
+`Plugin 'localvar/gocode', {'rtp': 'vim/'}`
 
 And then update your packages by running `:PluginInstall`.
 
@@ -88,7 +100,7 @@ And then update your packages by running `:PluginInstall`.
 
 Add the following line to your **.vimrc**:
 
-`Plug 'mdempsky/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }`
+`Plug 'localvar/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }`
 
 And then update your packages by running `:PlugInstall`.
 
@@ -105,7 +117,7 @@ Alternatively take a look at the vundle/pathogen friendly repo: https://github.c
 
 Add the following line to your **init.vim**:
 
-`Plugin 'mdempsky/gocode', {'rtp': 'nvim/'}`
+`Plugin 'localvar/gocode', {'rtp': 'nvim/'}`
 
 And then update your packages by running `:PluginInstall`.
 
@@ -113,7 +125,7 @@ And then update your packages by running `:PluginInstall`.
 
 Add the following line to your **init.vim**:
 
-`Plug 'mdempsky/gocode', { 'rtp': 'nvim', 'do': '~/.config/nvim/plugged/gocode/nvim/symlink.sh' }`
+`Plug 'localvar/gocode', { 'rtp': 'nvim', 'do': '~/.config/nvim/plugged/gocode/nvim/symlink.sh' }`
 
 And then update your packages by running `:PlugInstall`.
 
@@ -149,7 +161,7 @@ If something went wrong, the first thing you may want to do is manually start th
 
 `gocode -s -debug`
 
-Please, report bugs, feature suggestions and other rants to the [github issue tracker](http://github.com/mdempsky/gocode/issues) of this project.
+Please, report bugs, feature suggestions and other rants to the [github issue tracker](http://github.com/localvar/gocode/issues) of this project.
 
 ### Developing
 
