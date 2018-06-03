@@ -1,4 +1,4 @@
-package gbimporter
+package importer
 
 import "go/build"
 

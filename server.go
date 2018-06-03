@@ -11,7 +11,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/localvar/gocode/gbimporter"
+	"github.com/localvar/gocode/importer"
 	"github.com/localvar/gocode/suggest"
 )
 
@@ -53,7 +53,7 @@ type AutoCompleteRequest struct {
 	Filename string
 	Data     []byte
 	Cursor   int
-	Context  gbimporter.PackedContext
+	Context  importer.PackedContext
 }
 
 type AutoCompleteReply struct {
@@ -85,7 +85,7 @@ func (s *Server) AutoComplete(req *AutoCompleteRequest, res *AutoCompleteReply) 
 	}
 	now := time.Now()
 	cfg := suggest.Config{
-		Importer: gbimporter.New(&req.Context, req.Filename),
+		Importer: importer.New(&req.Context, req.Filename),
 	}
 	if *g_debug {
 		cfg.Logf = log.Printf

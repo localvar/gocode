@@ -14,7 +14,7 @@ import (
 
 	"runtime/debug"
 
-	"github.com/localvar/gocode/gbimporter"
+	"github.com/localvar/gocode/importer"
 	"github.com/localvar/gocode/suggest"
 )
 
@@ -126,7 +126,7 @@ func tryToConnect(network, address string) (*rpc.Client, error) {
 func cmdAutoComplete(c *rpc.Client) {
 	var req AutoCompleteRequest
 	req.Filename, req.Data, req.Cursor = prepareFilenameDataCursor()
-	req.Context = gbimporter.PackContext(&build.Default)
+	req.Context = importer.PackContext(&build.Default)
 
 	var res AutoCompleteReply
 	var err error
